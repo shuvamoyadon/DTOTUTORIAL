@@ -157,7 +157,41 @@ public void deleteCategory(Long categoryId) {
 
 In this project, it should be added to service methods that modify data to ensure data integrity.
 
-### 10. How would you secure the admin endpoints?
+### 10. Can you explain the `updateCategory` method in simple terms?
+
+**Answer:**
+The `updateCategory` method updates an existing category in the database. Here's how it works in simple terms:
+
+1. **Find the Category**: It first tries to find an existing category using the provided `categoryId`.
+   - If not found, it throws a `ResourceNotFoundException`
+   - If found, it proceeds to update it
+
+2. **Map DTO to Entity**: It converts the incoming `CategoryDTO` (data from the API request) into a `Category` entity object that can be saved to the database.
+
+3. **Set the ID**: It ensures the category being updated has the correct ID by setting it from the URL path variable.
+
+4. **Save Changes**: Finally, it saves the updated category back to the database and returns the updated data as a DTO.
+
+In simple code terms:
+```java
+public CategoryDTO updateCategory(CategoryDTO dto, Long id) {
+    // 1. Find existing category
+    Category existing = repository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Category not found"));
+    
+    // 2. Map DTO to entity
+    Category updatedCategory = modelMapper.map(dto, Category.class);
+    
+    // 3. Keep the same ID
+    updatedCategory.setId(id);
+    
+    // 4. Save and return
+    Category saved = repository.save(updatedCategory);
+    return modelMapper.map(saved, CategoryDTO.class);
+}
+```
+
+### 11. How would you secure the admin endpoints?
 
 **Answer:**
 To secure admin endpoints:
