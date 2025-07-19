@@ -1,6 +1,12 @@
-# E-commerce Project
+# Spring Boot E-commerce Project
 
-This is a Spring Boot-based E-commerce application with a clear separation of concerns and a well-structured architecture. Below is a detailed explanation of the project structure with code examples for each component.
+This is a Spring Boot-based E-commerce application with a clear separation of concerns and a well-structured architecture. The project demonstrates best practices in Spring Boot development, including RESTful APIs, DTOs, exception handling, and more.
+
+## Table of Contents
+- [Project Structure](#project-structure)
+- [Main Application Class](#main-application-class)
+- [Detailed Package Explanation](#detailed-package-explanation-with-code-examples)
+- [Interview Questions & Answers](#interview-questions--answers)
 
 ## Project Structure
 
@@ -34,7 +40,162 @@ public class main {
 - Bootstraps the Spring Boot application
 - Starts the embedded Tomcat server on port 8080
 
-## Detailed Package Explanation with Code Examples
+## Interview Questions & Answers
+
+### 1. What is the purpose of using DTOs in this application?
+
+**Answer:**
+DTOs (Data Transfer Objects) are used to transfer data between different layers of the application. In this project, `CategoryDTO` is used to:
+- Decouple the database entities from the API layer
+- Control what data is exposed through the API
+- Prevent over-fetching of data
+- Add validation annotations without polluting the domain model
+- Handle data transformation and validation before it reaches the service layer
+
+### 2. Explain the difference between `@Controller` and `@RestController`
+
+**Answer:**
+- `@Controller` is a Spring stereotype that marks a class as a web controller, capable of handling HTTP requests. It's typically used with view technologies.
+- `@RestController` is a specialized version of `@Controller` that includes `@ResponseBody` by default, meaning it's designed for RESTful web services and returns data in JSON/XML format.
+
+In this project, `@RestController` is used in `CategoryController` to handle REST API endpoints that return JSON responses.
+
+### 3. How does exception handling work in this application?
+
+**Answer:**
+The application uses a global exception handling mechanism with `@ControllerAdvice`:
+1. Custom exceptions like `ResourceNotFoundException` and `APIException` are defined
+2. `MyGlobalExceptionHandler` class handles these exceptions using `@ExceptionHandler`
+3. When an exception is thrown, it's caught by the appropriate handler method
+4. The handler creates a consistent error response format
+
+For example, when a category is not found, `ResourceNotFoundException` is thrown and converted to a proper HTTP 404 response.
+
+### 4. What is the purpose of ModelMapper in this project?
+
+**Answer:**
+ModelMapper is used for object-to-object mapping between DTOs and entities. In this project, it's configured in `AppConfig` and used to:
+- Convert `Category` entities to `CategoryDTO` objects
+- Convert `CategoryDTO` objects back to `Category` entities
+- Reduce boilerplate code for manual mapping between objects
+- Handle complex object transformations consistently
+
+### 5. Explain the difference between `@Service` and `@Repository` annotations
+
+**Answer:**
+- `@Service` is used to mark classes at the service layer which hold business logic. In this project, `CategoryServiceImpl` is annotated with `@Service`.
+- `@Repository` is used for classes that directly interact with the database. It's a specialization of `@Component` and includes automatic exception translation from database exceptions to Spring's `DataAccessException`.
+
+### 6. How would you add pagination to the `getAllCategories` endpoint?
+
+**Answer:**
+To add pagination, you would:
+1. Update the repository method to accept `Pageable`
+2. Modify the service layer to handle pagination
+3. Update the DTO to include pagination metadata
+
+Example implementation:
+```java
+// In CategoryRepository
+Page<Category> findAll(Pageable pageable);
+
+// In CategoryService
+public CategoryResponse getAllCategories(int pageNo, int pageSize) {
+    Pageable pageable = PageRequest.of(pageNo, pageSize);
+    Page<Category> categories = categoryRepository.findAll(pageable);
+    
+    List<CategoryDTO> content = categories.getContent().stream()
+        .map(category -> modelMapper.map(category, CategoryDTO.class))
+        .collect(Collectors.toList());
+    
+    CategoryResponse categoryResponse = new CategoryResponse();
+    categoryResponse.setContent(content);
+    categoryResponse.setPageNo(categories.getNumber());
+    categoryResponse.setPageSize(categories.getSize());
+    categoryResponse.setTotalElements(categories.getTotalElements());
+    categoryResponse.setTotalPages(categories.getTotalPages());
+    categoryResponse.setLast(categories.isLast());
+    
+    return categoryResponse;
+}
+```
+
+### 7. What is the purpose of `@Valid` annotation in the controller methods?
+
+**Answer:**
+The `@Valid` annotation triggers the validation of the request body against the validation constraints defined in the DTO. For example, if `CategoryDTO` has `@NotBlank` on a field, the validation will ensure the field is not null and not empty before the controller method is executed.
+
+### 8. How would you add caching to improve performance?
+
+**Answer:**
+To add caching:
+1. Add `@EnableCaching` to the main application class
+2. Add cache dependencies (e.g., Caffeine or Ehcache)
+3. Annotate service methods with `@Cacheable`, `@CachePut`, or `@CacheEvict`
+
+Example:
+```java
+@Cacheable(value = "categories", key = "#categoryId")
+public CategoryDTO getCategoryById(Long categoryId) {
+    // implementation
+}
+
+@CacheEvict(value = "categories", key = "#categoryId")
+public void deleteCategory(Long categoryId) {
+    // implementation
+}
+```
+
+### 9. What is the purpose of the `@Transactional` annotation?
+
+**Answer:**
+`@Transactional` ensures that a method executes within a database transaction. It provides:
+- Atomicity: All operations complete successfully or none do
+- Consistency: The database remains in a consistent state
+- Isolation: Concurrent transactions don't interfere with each other
+- Durability: Changes persist after transaction completion
+
+In this project, it should be added to service methods that modify data to ensure data integrity.
+
+### 10. How would you secure the admin endpoints?
+
+**Answer:**
+To secure admin endpoints:
+1. Add Spring Security dependency
+2. Configure security rules in a `SecurityConfig` class
+3. Use method-level security with `@PreAuthorize`
+
+Example:
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().permitAll()
+            )
+            .httpBasic();
+        return http.build();
+    }
+}
+```
+
+Then secure the admin endpoint:
+```java
+@DeleteMapping("/admin/categories/{categoryId}")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<String> deleteCategory(@PathVariable Long categoryId) {
+    // implementation
+}
+```
+
+## Project Structure
+
+This is a Spring Boot-based E-commerce application with a clear separation of concerns and a well-structured architecture. Below is a detailed explanation of the project structure with code examples for each component.
 
 ### 1. `config/`
 Contains Spring configuration classes that define the application's behavior and setup.
